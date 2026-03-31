@@ -372,7 +372,7 @@ const horas = [
 // crear cita
 const crearCita = async () => {
   try {
-    const res = await fetch('http://localhost:3000/api/crearCitas', {
+    const res = await fetch('http://reservas-qfvu.onrender.com/api/crearCitas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -417,7 +417,7 @@ const calendarOptions = {
   initialView: 'dayGridMonth',
 
   events: async (info, successCallback) => {
-    const res = await fetch('http://localhost:3000/api/citas')
+    const res = await fetch('http://reservas-qfvu.onrender.com/api/citas')
     const data = await res.json()
 
     successCallback(data)
