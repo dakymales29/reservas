@@ -1,12 +1,10 @@
 import { google } from 'googleapis';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const credentials = JSON.parse(process.env.GOOGLE_KEY_JSON);
+credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, 'google-key.json'),
+  credentials,
   scopes: ['https://www.googleapis.com/auth/calendar'],
 });
 
