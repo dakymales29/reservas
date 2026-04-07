@@ -25,7 +25,11 @@ router.get('/citas', async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: 'Error al obtener eventos' });
+    res.status(500).json({ 
+    mensaje: 'Error al obtener eventos',
+    error: error.message,
+    stack: error.stack
+      });
   }
 });
 //POST - GOOGLE CALENDAR
