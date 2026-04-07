@@ -1,16 +1,14 @@
-import { google } from 'googleapis';
+import { google } from "googleapis";
+import dotenv from "dotenv";
 
-const base64 = process.env.GOOGLE_KEY_BASE64;
+dotenv.config();
 
-const credentials = JSON.parse(
-  Buffer.from(base64, 'base64').toString('utf-8')
-);
+const keyBuffer = Buffer.from(process.env.GOOGLE_KEY_BASE64, "base64");
+const keyJson = JSON.parse(keyBuffer.toString("utf8"));
 
 const auth = new google.auth.GoogleAuth({
-  credentials,
-  scopes: ['https://www.googleapis.com/auth/calendar'],
+  credentials: keyJson,
+  scopes: ["https://www.googleapis.com/auth/calendar"],
 });
 
-const calendar = google.calendar({ version: 'v3', auth });
-
-export default calendar;
+export default auth;
