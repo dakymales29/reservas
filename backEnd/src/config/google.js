@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 
 const credentials = JSON.parse(process.env.GOOGLE_KEY_JSON);
 
-// 🔥 corregir saltos de línea
+// 🔥 ESTA LÍNEA ES LA CLAVE
 credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
 
 const auth = new google.auth.GoogleAuth({
