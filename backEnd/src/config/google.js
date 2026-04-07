@@ -1,7 +1,10 @@
 import { google } from 'googleapis';
 
-const credentials = JSON.parse(process.env.GOOGLE_KEY_JSON);
-credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+const base64 = process.env.GOOGLE_KEY_BASE64;
+
+const credentials = JSON.parse(
+  Buffer.from(base64, 'base64').toString('utf-8')
+);
 
 const auth = new google.auth.GoogleAuth({
   credentials,
