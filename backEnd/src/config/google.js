@@ -11,4 +11,7 @@ const auth = new google.auth.GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/calendar"],
 });
 
-export default auth;
+// 🔥 AQUÍ CREAS EL CALENDAR
+const calendar = google.calendar({ version: "v3", auth });
+
+export default calendar;
