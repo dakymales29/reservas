@@ -388,10 +388,11 @@ const crearCita = async () => {
 
     // 🔥 IMPORTANTE
     if (!res.ok) {
-      const text = await res.text()
-      mensaje.value = text || 'Error ❌'
-      return
-    }
+  const text = await res.text()
+  console.log("ERROR BACKEND:", text) // 🔥
+  mensaje.value = text || 'Error ❌'
+  return
+}
 
     const data = await res.json()
 
