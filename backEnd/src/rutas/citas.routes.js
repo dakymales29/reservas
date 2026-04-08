@@ -1,11 +1,12 @@
-//una ruta es “Cuando alguien visite ESTA URL, ejecuta ESTE código”
 import { Router } from "express";
 import pool from '../db/db.js';
-import calendar from '../config/google.js';//google calendar
+import calendar from '../config/google.js';
 
 const router = Router();
 
-//GET
+// =======================
+// GET - OBTENER EVENTOS
+// =======================
 router.get('/citas', async (req, res) => {
   try {
     const response = await calendar.events.list({
@@ -18,7 +19,7 @@ router.get('/citas', async (req, res) => {
 
     const eventos = response.data.items.map(event => ({
       title: event.summary,
-      start: new Date(event.start.dateTime || event.start.date)
+      start: event.start.dateTime || event.start.date
     }));
 
     res.json(eventos);
@@ -26,20 +27,30 @@ router.get('/citas', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ 
-    mensaje: 'Error al obtener eventos',
-    error: error.message,
-    stack: error.stack
-      });
+      mensaje: 'Error al obtener eventos',
+      error: error.message
+    });
   }
 });
-//POST - GOOGLE CALENDAR
 
+
+// =======================
+// POST - CREAR CITA
+// =======================
 router.post('/crearCitas', async (req, res) => {
   try {
     console.log("BODY 🔥:", req.body);
 
     const { nombre, apellido, celular, correo, fecha, hora } = req.body;
-    // 🔴 verificar duplicados
+
+    // validar datos
+    if (!fecha || !hora) {
+      return res.status(400).json({
+        mensaje: "Fecha y hora son obligatorios"
+      });
+    }
+
+    // 🔴 verificar duplicados en BD
     const existeCita = await pool.query(
       `SELECT * FROM citas WHERE "Fecha"=$1 AND "Hora"=$2`,
       [fecha, hora]
@@ -50,26 +61,33 @@ router.post('/crearCitas', async (req, res) => {
         mensaje: "Esta hora ya está reservada"
       });
     }
-    const startDate = new Date(`${fecha}T${hora}:00`);
-const endDate = new Date(startDate);
-endDate.setHours(endDate.getHours() + 1);
 
-   const event = {
-  summary: `Cita - ${nombre} ${apellido}`,
-  description: `Celular: ${celular} - Correo: ${correo}`,
-  start: {
-    dateTime: startDate.toISOString(),
-    timeZone: 'America/Guayaquil'
-  },
-  end: {
-    dateTime: endDate.toISOString(),
-    timeZone: 'America/Guayaquil'
-  },
-  reminders: {
-    useDefault: false,
-    overrides: [{ method: 'email', minutes: 0 }]
-  }
-};
+    // 🔥 FORMATO CORRECTO (SIN toISOString)
+    const startDateTime = `${fecha}T${hora}:00`;
+
+    const [h, m] = hora.split(':');
+    const endHour = String(parseInt(h) + 1).padStart(2, '0');
+    const endDateTime = `${fecha}T${endHour}:${m}:00`;
+
+    console.log("START:", startDateTime);
+    console.log("END:", endDateTime);
+
+    const event = {
+      summary: `Cita - ${nombre} ${apellido}`,
+      description: `Celular: ${celular} - Correo: ${correo}`,
+      start: {
+        dateTime: startDateTime,
+        timeZone: 'America/Guayaquil'
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone: 'America/Guayaquil'
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [{ method: 'email', minutes: 0 }]
+      }
+    };
 
     const response = await calendar.events.insert({
       calendarId: 'dakmagamer543@gmail.com',
@@ -78,6 +96,7 @@ endDate.setHours(endDate.getHours() + 1);
 
     const eventoId = response.data.id;
 
+    // guardar en BD
     await pool.query(
       `INSERT INTO citas ("Nombre", "Apellido", "Celular", "Correo", "Fecha", "Hora", "Calendario_id")
        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -85,28 +104,28 @@ endDate.setHours(endDate.getHours() + 1);
     );
 
     res.status(201).json({
-      mensaje: 'Cita creada en Google Calendar y guardada en BD',
+      mensaje: 'Cita creada correctamente ✅',
       eventoId
     });
 
   } catch (error) {
     console.error("ERROR REAL 🔥:", error);
 
-  res.status(500).json({ 
-    mensaje: 'Error al crear cita',
-    error: error.message,
-    stack: error.stack
-  });
+    res.status(500).json({ 
+      mensaje: 'Error al crear cita',
+      error: error.message
+    });
   }
 });
 
-//DELETE - GOOGLE CALENDAR
+
+// =======================
+// DELETE - ELIMINAR
+// =======================
 router.delete('/eliminarCitas/:id', async (req, res) => {
   try {
-
     const { id } = req.params;
 
-    // buscar la cita en la base de datos
     const result = await pool.query(
       `SELECT * FROM citas WHERE "id_cita" = $1`,
       [id]
@@ -120,23 +139,16 @@ router.delete('/eliminarCitas/:id', async (req, res) => {
 
     const eventoId = result.rows[0].calendario_id;
 
-    // intentar eliminar evento en Google Calendar
     try {
       await calendar.events.delete({
         calendarId: 'dakmagamer543@gmail.com',
         eventId: eventoId
       });
     } catch (error) {
-
-      // si el evento ya fue eliminado
-      if (error.code !== 410) {
-        throw error;
-      }
-
-      console.log("El evento ya no existe en Google Calendar");
+      if (error.code !== 410) throw error;
+      console.log("Evento ya eliminado en Google");
     }
 
-    // eliminar cita de la base de datos
     await pool.query(
       `DELETE FROM citas WHERE "id_cita" = $1`,
       [id]
