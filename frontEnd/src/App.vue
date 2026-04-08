@@ -386,19 +386,19 @@ const crearCita = async () => {
       })
     })
 
-    const data = await res.json()
-
+    // 🔥 IMPORTANTE
     if (!res.ok) {
-      mensaje.value = data.mensaje || 'Error ❌'
+      const text = await res.text()
+      mensaje.value = text || 'Error ❌'
       return
     }
 
+    const data = await res.json()
+
     mensaje.value = 'Cita creada ✅'
 
-    // 🔥 refrescar calendario
     calendarRef.value.getApi().refetchEvents()
 
-    // limpiar form
     nombre.value = ''
     apellido.value = ''
     celular.value = ''
