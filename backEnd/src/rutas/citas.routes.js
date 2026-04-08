@@ -50,28 +50,26 @@ router.post('/crearCitas', async (req, res) => {
         mensaje: "Esta hora ya está reservada"
       });
     }
-    const startDateTime = `${fecha}T${hora}:00`;
+    const startDate = new Date(`${fecha}T${hora}:00`);
+const endDate = new Date(startDate);
+endDate.setHours(endDate.getHours() + 1);
 
-    const endDate = new Date(startDateTime);
-    endDate.setHours(endDate.getHours() + 1);
-
-    const event = {
-      summary: `Cita - ${nombre} ${apellido}`,
-      description: `Celular: ${celular} - Correo: ${correo}`,
-      start: {
-        dateTime: startDateTime,
-        timeZone: 'America/Guayaquil'
-      },
-      end: {
-        dateTime: endDate.toISOString(),
-        timeZone: 'America/Guayaquil'
-      },
-       reminders: {
+   const event = {
+  summary: `Cita - ${nombre} ${apellido}`,
+  description: `Celular: ${celular} - Correo: ${correo}`,
+  start: {
+    dateTime: startDate.toISOString(),
+    timeZone: 'America/Guayaquil'
+  },
+  end: {
+    dateTime: endDate.toISOString(),
+    timeZone: 'America/Guayaquil'
+  },
+  reminders: {
     useDefault: false,
-    overrides: [
-      { method: 'email', minutes: 0 }
-    ]}
-    };
+    overrides: [{ method: 'email', minutes: 0 }]
+  }
+};
 
     const response = await calendar.events.insert({
       calendarId: 'dakmagamer543@gmail.com',
