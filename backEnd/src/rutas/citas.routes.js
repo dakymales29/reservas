@@ -36,6 +36,7 @@ router.get('/citas', async (req, res) => {
 
 router.post('/crearCitas', async (req, res) => {
   try {
+    console.log("BODY 🔥:", req.body);
 
     const { nombre, apellido, celular, correo, fecha, hora } = req.body;
     // 🔴 verificar duplicados
@@ -91,8 +92,13 @@ router.post('/crearCitas', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: 'Error al crear cita' });
+    console.error("ERROR REAL 🔥:", error);
+
+  res.status(500).json({ 
+    mensaje: 'Error al crear cita',
+    error: error.message,
+    stack: error.stack
+  });
   }
 });
 
