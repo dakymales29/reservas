@@ -350,7 +350,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import gsap from 'gsap'
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 
-import Preloader from "./components/Preloader.vue"
+import Preloader from "./componentes/preloader.vue"
 
 gsap.registerPlugin(ScrollTrigger)
 
