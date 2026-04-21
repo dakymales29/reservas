@@ -1,4 +1,6 @@
 <template>
+   <!-- PRELOADER -->
+  <Preloader v-if="loading" />
   <!-- HEADER -->
   <header class="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 py-4 bg-white shadow-md gap-4  top-0 z-50">
     
@@ -346,12 +348,23 @@ import { onMounted, ref } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import gsap from 'gsap'
-import { ScrollTrigger } from "gsap/ScrollTrigger"//scroll con gsap
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+
+import Preloader from "./components/Preloader.vue"
+
+gsap.registerPlugin(ScrollTrigger)
+
+
+// =====================
+// STATE
+// =====================
+const loading = ref(true)
 const menuOpen = ref(false)
+
 const API_URL = import.meta.env.VITE_API_URL
 
-// variables
 const calendarRef = ref(null)
+
 const nombre = ref('')
 const apellido = ref('')
 const celular = ref('')
@@ -359,8 +372,11 @@ const correo = ref('')
 const fecha = ref('')
 const hora = ref('')
 const mensaje = ref('')
-gsap.registerPlugin(ScrollTrigger)//scroll con gsap
 
+
+// =====================
+// HORAS
+// =====================
 const horas = [
   "06:00", "07:00", "08:00", "09:00",
   "10:00", "11:00", "12:00",
@@ -369,8 +385,9 @@ const horas = [
 ]
 
 
-
-// crear cita
+// =====================
+// CREAR CITA
+// =====================
 const crearCita = async () => {
   try {
     const res = await fetch(`${API_URL}/api/crearCitas`, {
@@ -386,15 +403,13 @@ const crearCita = async () => {
       })
     })
 
-    // 🔥 IMPORTANTE
     if (!res.ok) {
-  const text = await res.text()
-  console.log("ERROR BACKEND:", text) // 🔥
-  mensaje.value = text || 'Error ❌'
-  return
-}
+      const text = await res.text()
+      mensaje.value = text || 'Error ❌'
+      return
+    }
 
-    const data = await res.json()
+    await res.json()
 
     mensaje.value = 'Cita creada ✅'
 
@@ -413,111 +428,32 @@ const crearCita = async () => {
 }
 
 
-// calendario
+// =====================
+// CALENDARIO
+// =====================
 const calendarOptions = {
   plugins: [dayGridPlugin],
   initialView: 'dayGridMonth',
 
   events: async (info, successCallback) => {
-    const res = await fetch(`${API_URL}/api/citas`)
-    const data = await res.json()
-
-    successCallback(data)
+    try {
+      const res = await fetch(`${API_URL}/api/citas`)
+      const data = await res.json()
+      successCallback(data)
+    } catch (err) {
+      successCallback([])
+    }
   }
 }
 
-//ANIMACIONES
-onMounted(()=>{
-const tl = gsap.timeline()
- // título
-  tl.from(".hero h1", {
-    y: 100,
-    opacity: 0,
-    filter: "blur(10px)",
-    duration: 1,
-    ease: "circ.out"
-  })
 
-  // texto
-  tl.from(".hero p", {
-    y: 80,
-    opacity: 0,
-    duration: 0.8,
-    ease: "power2.out"
-  }, "-=0.5")
-
-  // botón
-  tl.from(".hero-btn", {
-  y: 60,
-  scale: 0.8,
-  duration: 0.6,
-  ease: "back.out(1.7)"
-})
-//nosotros
-gsap.from(".nosotros-text", {
-  scrollTrigger: {
-    trigger: ".nosotros",
-    start: "top 80%", // cuando entra en pantalla,
-    once: true
-  },
-  y: 100,
-  opacity: 0,
-  duration: 1
-})
-
-gsap.from(".nosotros-img", {
-  scrollTrigger: {
-    trigger: ".nosotros",
-    start: "top 80%",
-  },
-  x: 100,
-  opacity: 0,
-  duration: 1,
-  ease:"power1.out"
-})
-//servicios
-gsap.from(".servicio-card", {
-  scrollTrigger: {
-    trigger: "#servicios",
-    start: "top 80%",
-  },
-  y: 80,
-  opacity: 0,
-  duration: 0.8,
-  stagger: 0.2
-})
-//nav
-gsap.to(".nav", {
-  scrollTrigger: {
-    trigger: ".hero", // 🔥 usa el hero como referencia
-    start: "bottom top", // cuando sales del hero
-    toggleActions: "play none none reverse"
-  },
-  backgroundColor: "#111827",
-  backdropFilter: "blur(10px)",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
-  duration: 0.3,
-  
-})
-//galeria imagen
-gsap.from(".galeria-item", {
-  scrollTrigger: {
-    trigger: "#galeria",
-    start: "top 80%",
-  },
-  y: 80,
-  opacity: 0,
-  duration: 0.8,
-  stagger: 0.2,
-  ease: "power2.out"
-})
-
-})
+// =====================
+// GALERÍA MIX
+// =====================
 const mezclarGaleria = () => {
   const container = document.querySelector("#galeria .grid")
   const items = Array.from(container.children)
 
-  // 🔥 animación salida
   gsap.to(items, {
     y: 20,
     opacity: 0,
@@ -525,16 +461,12 @@ const mezclarGaleria = () => {
     stagger: 0.05,
     onComplete: () => {
 
-      // 🔀 mezclar
       const mezclado = items.sort(() => Math.random() - 0.5)
 
-      // limpiar
       container.innerHTML = ""
 
-      // reinsertar
       mezclado.forEach(el => container.appendChild(el))
 
-      // 🔥 animación entrada
       gsap.fromTo(mezclado,
         { y: -20, opacity: 0 },
         {
@@ -549,4 +481,108 @@ const mezclarGaleria = () => {
   })
 }
 
+
+// =====================
+// ON MOUNTED
+// =====================
+onMounted(async () => {
+
+  // 🔥 PRELOADER (mejorado)
+  await new Promise(r => setTimeout(r, 1000))
+  loading.value = false
+
+
+  // =====================
+  // HERO ANIMACIÓN
+  // =====================
+  const tl = gsap.timeline()
+
+  tl.from(".hero h1", {
+    y: 100,
+    opacity: 0,
+    duration: 1
+  })
+
+  tl.from(".hero p", {
+    y: 80,
+    opacity: 0,
+    duration: 0.8
+  }, "-=0.5")
+
+  tl.from(".hero-btn", {
+    y: 60,
+    scale: 0.8,
+    duration: 0.6
+  })
+
+
+  // =====================
+  // NOSOTROS
+  // =====================
+  gsap.from(".nosotros-text", {
+    scrollTrigger: {
+      trigger: ".nosotros",
+      start: "top 80%",
+      once: true
+    },
+    y: 100,
+    opacity: 0,
+    duration: 1
+  })
+
+  gsap.from(".nosotros-img", {
+    scrollTrigger: {
+      trigger: ".nosotros",
+      start: "top 80%"
+    },
+    x: 100,
+    opacity: 0,
+    duration: 1
+  })
+
+
+  // =====================
+  // SERVICIOS
+  // =====================
+  gsap.from(".servicio-card", {
+    scrollTrigger: {
+      trigger: "#servicios",
+      start: "top 80%"
+    },
+    y: 80,
+    opacity: 0,
+    duration: 0.8
+  })
+
+
+  // =====================
+  // NAV
+  // =====================
+  gsap.to(".nav", {
+    scrollTrigger: {
+      trigger: ".hero",
+      start: "bottom top",
+      toggleActions: "play none none reverse"
+    },
+    backgroundColor: "#111827",
+    backdropFilter: "blur(10px)",
+    duration: 0.3
+  })
+
+
+  // =====================
+  // GALERÍA
+  // =====================
+  gsap.from(".galeria-item", {
+    scrollTrigger: {
+      trigger: "#galeria",
+      start: "top 80%"
+    },
+    y: 80,
+    opacity: 0,
+    duration: 0.8,
+    stagger: 0.2
+  })
+
+})
 </script>
