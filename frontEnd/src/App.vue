@@ -1,6 +1,6 @@
 <template>
    <!-- PRELOADER -->
-  <Preloader v-if="loading" />
+  <Preloader v-if="showLoader" />
   <!-- HEADER -->
   <header class="flex flex-col md:flex-row justify-between items-center px-6 md:px-10 py-4 bg-white shadow-md gap-4  top-0 z-50">
     
@@ -179,9 +179,12 @@ Ofrecemos servicios diseñados para facilitar la gestión de citas, optimizar el
           </option>
         </select>
 
-        <button class="bg-gradient-to-r from-blue-500 to-blue-700 text-white p-3 rounded-lg font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition mt-2">
-          Reservar
-        </button>
+       <button
+  :disabled="enviando"
+  class="bg-gradient-to-r from-blue-500 to-blue-700 text-white p-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition mt-2 disabled:opacity-50"
+>
+  {{ enviando ? "Reservando..." : "Reservar" }}
+</button>
 
       </form>
 
@@ -338,13 +341,8 @@ Conoce algunos de nuestros espacios diseñados para tu comodidad.
     <p>© 2025 Todos los derechos reservados</p>
   </footer>
 </template>
-
-
-
-
-
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import gsap from 'gsap'
@@ -354,11 +352,13 @@ import Preloader from "./componentes/preloader.vue"
 
 gsap.registerPlugin(ScrollTrigger)
 
-
 // =====================
 // STATE
 // =====================
 const loading = ref(true)
+const showLoader = ref(false)
+const enviando = ref(false)
+
 const menuOpen = ref(false)
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -373,22 +373,33 @@ const fecha = ref('')
 const hora = ref('')
 const mensaje = ref('')
 
+// =====================
+// TIMER
+// =====================
+let timer = null
 
 // =====================
 // HORAS
 // =====================
 const horas = [
-  "06:00", "07:00", "08:00", "09:00",
-  "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00",
-  "16:00", "17:00", "18:00"
+  "06:00","07:00","08:00","09:00",
+  "10:00","11:00","12:00",
+  "13:00","14:00","15:00",
+  "16:00","17:00","18:00"
 ]
-
 
 // =====================
 // CREAR CITA
 // =====================
 const crearCita = async () => {
+
+  if (!hora.value) {
+    mensaje.value = "Selecciona una hora ⚠️"
+    return
+  }
+
+  enviando.value = true
+
   try {
     const res = await fetch(`${API_URL}/api/crearCitas`, {
       method: 'POST',
@@ -413,8 +424,11 @@ const crearCita = async () => {
 
     mensaje.value = 'Cita creada ✅'
 
-    calendarRef.value.getApi().refetchEvents()
+    if (calendarRef.value) {
+      calendarRef.value.getApi().refetchEvents()
+    }
 
+    // limpiar
     nombre.value = ''
     apellido.value = ''
     celular.value = ''
@@ -424,9 +438,10 @@ const crearCita = async () => {
 
   } catch (error) {
     mensaje.value = 'Error de conexión ❌'
+  } finally {
+    enviando.value = false
   }
 }
-
 
 // =====================
 // CALENDARIO
@@ -439,19 +454,25 @@ const calendarOptions = {
     try {
       const res = await fetch(`${API_URL}/api/citas`)
       const data = await res.json()
+
       successCallback(data)
+
     } catch (err) {
       successCallback([])
+    } finally {
+      loading.value = false
+      showLoader.value = false
     }
   }
 }
-
 
 // =====================
 // GALERÍA MIX
 // =====================
 const mezclarGaleria = () => {
   const container = document.querySelector("#galeria .grid")
+  if (!container) return
+
   const items = Array.from(container.children)
 
   gsap.to(items, {
@@ -463,8 +484,7 @@ const mezclarGaleria = () => {
 
       const mezclado = items.sort(() => Math.random() - 0.5)
 
-      container.innerHTML = ""
-
+      // NO usamos innerHTML
       mezclado.forEach(el => container.appendChild(el))
 
       gsap.fromTo(mezclado,
@@ -481,83 +501,38 @@ const mezclarGaleria = () => {
   })
 }
 
-
 // =====================
 // ON MOUNTED
 // =====================
-onMounted(async () => {
+onMounted(() => {
 
-  // 🔥 PRELOADER (mejorado)
-  await new Promise(r => setTimeout(r, 1000))
-  loading.value = false
+  timer = setTimeout(() => {
+    if (loading.value) {
+      showLoader.value = true
+    }
+  }, 1200)
 
-
-  // =====================
-  // HERO ANIMACIÓN
-  // =====================
   const tl = gsap.timeline()
 
-  tl.from(".hero h1", {
-    y: 100,
-    opacity: 0,
-    duration: 1
-  })
+  tl.from(".hero h1", { y: 100, opacity: 0, duration: 1 })
+  tl.from(".hero p", { y: 80, opacity: 0, duration: 0.8 }, "-=0.5")
+  tl.from(".hero-btn", { y: 60, scale: 0.8, duration: 0.6 })
 
-  tl.from(".hero p", {
-    y: 80,
-    opacity: 0,
-    duration: 0.8
-  }, "-=0.5")
-
-  tl.from(".hero-btn", {
-    y: 60,
-    scale: 0.8,
-    duration: 0.6
-  })
-
-
-  // =====================
-  // NOSOTROS
-  // =====================
   gsap.from(".nosotros-text", {
-    scrollTrigger: {
-      trigger: ".nosotros",
-      start: "top 80%",
-      once: true
-    },
-    y: 100,
-    opacity: 0,
-    duration: 1
+    scrollTrigger: { trigger: ".nosotros", start: "top 80%", once: true },
+    y: 100, opacity: 0, duration: 1
   })
 
   gsap.from(".nosotros-img", {
-    scrollTrigger: {
-      trigger: ".nosotros",
-      start: "top 80%"
-    },
-    x: 100,
-    opacity: 0,
-    duration: 1
+    scrollTrigger: { trigger: ".nosotros", start: "top 80%" },
+    x: 100, opacity: 0, duration: 1
   })
 
-
-  // =====================
-  // SERVICIOS
-  // =====================
   gsap.from(".servicio-card", {
-    scrollTrigger: {
-      trigger: "#servicios",
-      start: "top 80%"
-    },
-    y: 80,
-    opacity: 0,
-    duration: 0.8
+    scrollTrigger: { trigger: "#servicios", start: "top 80%" },
+    y: 80, opacity: 0, duration: 0.8
   })
 
-
-  // =====================
-  // NAV
-  // =====================
   gsap.to(".nav", {
     scrollTrigger: {
       trigger: ".hero",
@@ -569,20 +544,20 @@ onMounted(async () => {
     duration: 0.3
   })
 
-
-  // =====================
-  // GALERÍA
-  // =====================
   gsap.from(".galeria-item", {
-    scrollTrigger: {
-      trigger: "#galeria",
-      start: "top 80%"
-    },
-    y: 80,
-    opacity: 0,
-    duration: 0.8,
-    stagger: 0.2
+    scrollTrigger: { trigger: "#galeria", start: "top 80%" },
+    y: 80, opacity: 0, duration: 0.8, stagger: 0.2
   })
+})
 
+// =====================
+// CLEANUP
+// =====================
+onUnmounted(() => {
+  clearTimeout(timer)
 })
 </script>
+
+
+
+
