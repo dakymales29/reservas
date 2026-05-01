@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const mensajes = [
   "Conectando con el servidor...",
@@ -28,13 +28,19 @@ const mensajes = [
 
 const mensaje = ref(mensajes[0])
 
+let interval = null
+
 onMounted(() => {
   let i = 0
 
-  setInterval(() => {
+  interval = setInterval(() => {
     i = (i + 1) % mensajes.length
     mensaje.value = mensajes[i]
   }, 2000)
+})
+
+onUnmounted(() => {
+  clearInterval(interval)
 })
 </script>
 
